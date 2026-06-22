@@ -310,6 +310,42 @@ module tb_sync_fifo;
         end
     endtask
 
+
+    task test_randomized();
+        int i;
+        int drain_guard;
+        begin
+            reset_fifo();
+
+            for (i = 0; i < 200; i = i + 1) begin
+                @(negedge clk);
+                wr_en = $urandom_range(0, 1);
+                rd_en = $urandom_range(0, 1);
+                din   = $urandom_range(0, 255);
+            end
+
+            @(negedge clk);
+            wr_en = 1'b0;
+            rd_en = 1'b0;
+            din   = '0;
+
+            drain_guard = 0;
+
+            while (!empty && drain_guard < DEPTH + 20) begin
+                read_fifo();
+                drain_guard = drain_guard + 1;
+            end
+
+            if (!empty) begin
+                fail_test("Randomized test failed to drain FIFO");
+            end
+
+            check_state(1'b1, 1'b0, 0, "after randomized test drain");
+
+            $display("PASS: Randomized traffic test");
+        end
+    endtask
+
     initial begin
         $dumpfile("sim/waves/sync_fifo.vcd");
         $dumpvars(0, tb_sync_fifo);
@@ -324,8 +360,9 @@ module tb_sync_fifo;
         test_underflow();
         test_simultaneous_read_write();
         test_pointer_wraparound();
+        test_randomized();
 
-        $display("Milestone 3 PASSED: directed tests with self-checking scoreboard");
+        $display("Milestone 4 PASSED: directed and randomized tests with scoreboard");
         $finish;
     end
 
