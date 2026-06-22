@@ -102,6 +102,47 @@ module tb_sync_fifo;
         end
     end
 
+
+    always @(posedge clk) begin
+        if (rst_n) begin
+            assert (dut.count <= DEPTH)
+                else begin
+                    $display("ASSERTION FAIL: count exceeded DEPTH. count=%0d DEPTH=%0d", dut.count, DEPTH);
+                    $finish;
+                end
+
+            assert (empty == (dut.count == 0))
+                else begin
+                    $display("ASSERTION FAIL: empty flag mismatch. empty=%0b count=%0d", empty, dut.count);
+                    $finish;
+                end
+
+            assert (full == (dut.count == DEPTH))
+                else begin
+                    $display("ASSERTION FAIL: full flag mismatch. full=%0b count=%0d", full, dut.count);
+                    $finish;
+                end
+
+            assert (!(full && empty))
+                else begin
+                    $display("ASSERTION FAIL: full and empty are both high");
+                    $finish;
+                end
+
+            assert (!(wr_en && full && !rd_en && dut.wr_accept))
+                else begin
+                    $display("ASSERTION FAIL: write accepted while FIFO full without read");
+                    $finish;
+                end
+
+            assert (!(rd_en && empty && dut.rd_accept))
+                else begin
+                    $display("ASSERTION FAIL: read accepted while FIFO empty");
+                    $finish;
+                end
+        end
+    end
+
     task check_state(
         input logic exp_empty,
         input logic exp_full,
@@ -362,7 +403,7 @@ module tb_sync_fifo;
         test_pointer_wraparound();
         test_randomized();
 
-        $display("Milestone 4 PASSED: directed and randomized tests with scoreboard");
+        $display("Milestone 5 PASSED: directed/randomized tests with scoreboard and assertions");
         $finish;
     end
 
