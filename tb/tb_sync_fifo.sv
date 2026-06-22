@@ -14,6 +14,13 @@ module tb_sync_fifo;
     logic full;
     logic empty;
 
+    logic [DATA_WIDTH-1:0] expected_q[$];
+
+    logic sb_do_read;
+    logic sb_do_write;
+    logic [DATA_WIDTH-1:0] sb_expected_data;
+    int expected_count;
+
     sync_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
@@ -39,6 +46,61 @@ module tb_sync_fifo;
             $finish;
         end
     endtask
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            expected_q.delete();
+        end else begin
+            sb_do_read  = rd_en && !empty;
+            sb_do_write = wr_en && (!full || sb_do_read);
+
+            if (sb_do_read) begin
+                if (expected_q.size() == 0) begin
+                    fail_test("Scoreboard underflow: DUT read but expected queue is empty");
+                end
+
+                sb_expected_data = expected_q.pop_front();
+            end
+
+            if (sb_do_write) begin
+                expected_q.push_back(din);
+            end
+
+            #1;
+
+            if (sb_do_read) begin
+                if (dout !== sb_expected_data) begin
+                    $display("FAIL: Scoreboard mismatch. Expected=%0h Actual=%0h",
+                             sb_expected_data, dout);
+                    $finish;
+                end
+            end
+
+            expected_count = expected_q.size();
+
+            if (dut.count != expected_count) begin
+                $display("FAIL: Count mismatch. Expected=%0d Actual=%0d",
+                         expected_count, dut.count);
+                $finish;
+            end
+
+            if ((expected_count == 0) && (empty !== 1'b1)) begin
+                fail_test("Empty flag mismatch: expected empty=1");
+            end
+
+            if ((expected_count != 0) && (empty !== 1'b0)) begin
+                fail_test("Empty flag mismatch: expected empty=0");
+            end
+
+            if ((expected_count == DEPTH) && (full !== 1'b1)) begin
+                fail_test("Full flag mismatch: expected full=1");
+            end
+
+            if ((expected_count != DEPTH) && (full !== 1'b0)) begin
+                fail_test("Full flag mismatch: expected full=0");
+            end
+        end
+    end
 
     task check_state(
         input logic exp_empty,
@@ -97,19 +159,11 @@ module tb_sync_fifo;
         end
     endtask
 
-    task read_fifo_check(input logic [DATA_WIDTH-1:0] expected);
+    task read_fifo();
         begin
             @(negedge clk);
             rd_en = 1'b1;
             wr_en = 1'b0;
-
-            @(posedge clk);
-            #1;
-
-            if (dout !== expected) begin
-                $display("FAIL: Read expected=%0h actual=%0h", expected, dout);
-                $finish;
-            end
 
             @(negedge clk);
             rd_en = 1'b0;
@@ -140,23 +194,12 @@ module tb_sync_fifo;
         end
     endtask
 
-    task simultaneous_write_read(
-        input logic [DATA_WIDTH-1:0] write_data,
-        input logic [DATA_WIDTH-1:0] expected_read
-    );
+    task simultaneous_write_read(input logic [DATA_WIDTH-1:0] write_data);
         begin
             @(negedge clk);
             din   = write_data;
             wr_en = 1'b1;
             rd_en = 1'b1;
-
-            @(posedge clk);
-            #1;
-
-            if (dout !== expected_read) begin
-                $display("FAIL: Simultaneous R/W expected read=%0h actual=%0h", expected_read, dout);
-                $finish;
-            end
 
             @(negedge clk);
             wr_en = 1'b0;
@@ -172,7 +215,7 @@ module tb_sync_fifo;
             write_fifo(8'hA5);
             check_state(1'b0, 1'b0, 1, "after single write");
 
-            read_fifo_check(8'hA5);
+            read_fifo();
             check_state(1'b1, 1'b0, 0, "after single read");
 
             $display("PASS: Single write/read test");
@@ -195,10 +238,10 @@ module tb_sync_fifo;
             check_state(1'b0, 1'b1, DEPTH, "after overflow attempt");
             $display("PASS: Overflow attempt ignored");
 
-            read_fifo_check(8'h10);
-            read_fifo_check(8'h20);
-            read_fifo_check(8'h30);
-            read_fifo_check(8'h40);
+            read_fifo();
+            read_fifo();
+            read_fifo();
+            read_fifo();
 
             check_state(1'b1, 1'b0, 0, "after draining FIFO");
             $display("PASS: Drain/order test");
@@ -224,11 +267,11 @@ module tb_sync_fifo;
             write_fifo(8'hA2);
             check_state(1'b0, 1'b0, 2, "before simultaneous read/write");
 
-            simultaneous_write_read(8'hB1, 8'hA1);
+            simultaneous_write_read(8'hB1);
             check_state(1'b0, 1'b0, 2, "after simultaneous read/write");
 
-            read_fifo_check(8'hA2);
-            read_fifo_check(8'hB1);
+            read_fifo();
+            read_fifo();
             check_state(1'b1, 1'b0, 0, "after simultaneous test drain");
 
             $display("PASS: Simultaneous read/write test");
@@ -246,8 +289,8 @@ module tb_sync_fifo;
 
             check_state(1'b0, 1'b1, DEPTH, "wrap test full");
 
-            read_fifo_check(8'h01);
-            read_fifo_check(8'h02);
+            read_fifo();
+            read_fifo();
 
             check_state(1'b0, 1'b0, 2, "after two reads");
 
@@ -256,10 +299,10 @@ module tb_sync_fifo;
 
             check_state(1'b0, 1'b1, DEPTH, "after pointer wrap writes");
 
-            read_fifo_check(8'h03);
-            read_fifo_check(8'h04);
-            read_fifo_check(8'h05);
-            read_fifo_check(8'h06);
+            read_fifo();
+            read_fifo();
+            read_fifo();
+            read_fifo();
 
             check_state(1'b1, 1'b0, 0, "after wraparound drain");
 
@@ -282,7 +325,7 @@ module tb_sync_fifo;
         test_simultaneous_read_write();
         test_pointer_wraparound();
 
-        $display("Milestone 2 PASSED: all directed FIFO tests passed");
+        $display("Milestone 3 PASSED: directed tests with self-checking scoreboard");
         $finish;
     end
 
