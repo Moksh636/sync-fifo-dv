@@ -1,0 +1,32 @@
+VCD info: dumpfile sim/waves/sync_fifo.vcd opened for output.
+PASS: Reset test
+PASS: Single write/read test
+PASS: Reset test
+PASS: Fill test
+PASS: Overflow attempt ignored
+PASS: Drain/order test
+PASS: Reset test
+PASS: Underflow attempt ignored
+PASS: Reset test
+PASS: Simultaneous read/write test
+PASS: Reset test
+PASS: Pointer wraparound/order test
+PASS: Reset test
+PASS: Randomized traffic test
+
+Coverage summary:
+  reset_seen        = 13
+  empty_state       = 49
+  full_state        = 36
+  middle_state      = 193
+  write_only        = 64
+  read_only         = 72
+  simultaneous_rw   = 46
+  overflow_attempt  = 11
+  underflow_attempt = 13
+PASS: Functional coverage goals hit
+Milestone 6 PASSED: tests, scoreboard, assertions, and coverage
+tb/tb_sync_fifo.sv:500: $finish called at 2911000 (1ps)
+
+To open waveform:
+gtkwave sim/waves/sync_fifo.vcd

@@ -21,6 +21,16 @@ module tb_sync_fifo;
     logic [DATA_WIDTH-1:0] sb_expected_data;
     int expected_count;
 
+    int cov_reset_seen;
+    int cov_empty_state;
+    int cov_full_state;
+    int cov_middle_state;
+    int cov_write_only;
+    int cov_read_only;
+    int cov_simultaneous_rw;
+    int cov_overflow_attempt;
+    int cov_underflow_attempt;
+
     sync_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
@@ -142,6 +152,88 @@ module tb_sync_fifo;
                 end
         end
     end
+
+
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            cov_reset_seen++;
+        end else begin
+            if (wr_en && !rd_en && !full) begin
+                cov_write_only++;
+            end
+
+            if (rd_en && !wr_en && !empty) begin
+                cov_read_only++;
+            end
+
+            if (wr_en && rd_en) begin
+                cov_simultaneous_rw++;
+            end
+
+            if (wr_en && full && !(rd_en && !empty)) begin
+                cov_overflow_attempt++;
+            end
+
+            if (rd_en && empty) begin
+                cov_underflow_attempt++;
+            end
+
+            #2;
+
+            if (empty) begin
+                cov_empty_state++;
+            end else if (full) begin
+                cov_full_state++;
+            end else begin
+                cov_middle_state++;
+            end
+        end
+    end
+
+    task report_coverage();
+        begin
+            $display("");
+            $display("Coverage summary:");
+            $display("  reset_seen        = %0d", cov_reset_seen);
+            $display("  empty_state       = %0d", cov_empty_state);
+            $display("  full_state        = %0d", cov_full_state);
+            $display("  middle_state      = %0d", cov_middle_state);
+            $display("  write_only        = %0d", cov_write_only);
+            $display("  read_only         = %0d", cov_read_only);
+            $display("  simultaneous_rw   = %0d", cov_simultaneous_rw);
+            $display("  overflow_attempt  = %0d", cov_overflow_attempt);
+            $display("  underflow_attempt = %0d", cov_underflow_attempt);
+
+            if (cov_reset_seen == 0)
+                fail_test("Coverage miss: reset was not seen");
+
+            if (cov_empty_state == 0)
+                fail_test("Coverage miss: empty state was not seen");
+
+            if (cov_full_state == 0)
+                fail_test("Coverage miss: full state was not seen");
+
+            if (cov_middle_state == 0)
+                fail_test("Coverage miss: middle occupancy state was not seen");
+
+            if (cov_write_only == 0)
+                fail_test("Coverage miss: write-only operation was not seen");
+
+            if (cov_read_only == 0)
+                fail_test("Coverage miss: read-only operation was not seen");
+
+            if (cov_simultaneous_rw == 0)
+                fail_test("Coverage miss: simultaneous read/write was not seen");
+
+            if (cov_overflow_attempt == 0)
+                fail_test("Coverage miss: overflow attempt was not seen");
+
+            if (cov_underflow_attempt == 0)
+                fail_test("Coverage miss: underflow attempt was not seen");
+
+            $display("PASS: Functional coverage goals hit");
+        end
+    endtask
 
     task check_state(
         input logic exp_empty,
@@ -391,7 +483,7 @@ module tb_sync_fifo;
         $dumpfile("sim/waves/sync_fifo.vcd");
         $dumpvars(0, tb_sync_fifo);
 
-        rst_n = 1'b1;
+        rst_n = 1'b0;
         wr_en = 1'b0;
         rd_en = 1'b0;
         din   = '0;
@@ -402,8 +494,9 @@ module tb_sync_fifo;
         test_simultaneous_read_write();
         test_pointer_wraparound();
         test_randomized();
+        report_coverage();
 
-        $display("Milestone 5 PASSED: directed/randomized tests with scoreboard and assertions");
+        $display("Milestone 6 PASSED: tests, scoreboard, assertions, and coverage");
         $finish;
     end
 
