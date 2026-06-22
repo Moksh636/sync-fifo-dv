@@ -1,0 +1,5 @@
+sim/*.vvp
+sim/*_sim
+sim/waves/*.vcd
+obj_dir/
+*.log
