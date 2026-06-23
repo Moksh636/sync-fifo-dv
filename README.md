@@ -143,17 +143,9 @@ Final result:
 
 Milestone 9 PASSED: reproducible FIFO DV regression complete
 
-Coverage summary from latest run:
+Coverage counter values can change as tests are improved.
 
-- reset_seen: 13
-- empty_state: 49
-- full_state: 36
-- middle_state: 193
-- write_only: 64
-- read_only: 72
-- simultaneous_rw: 46
-- overflow_attempt: 11
-- underflow_attempt: 13
+See docs/regression_latest.txt for the latest regression output and coverage counter values.
 
 ## Waveform Debugging
 
