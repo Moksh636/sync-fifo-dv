@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.sv text eol=lf
+*.svh text eol=lf
+*.sh text eol=lf
+Makefile text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary

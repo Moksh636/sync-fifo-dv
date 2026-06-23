@@ -31,6 +31,9 @@ module tb_sync_fifo;
     int cov_overflow_attempt;
     int cov_underflow_attempt;
 
+    int unsigned seed_used;
+    int unsigned seed_init_value;
+
     sync_fifo #(
         .DATA_WIDTH(DATA_WIDTH),
         .DEPTH(DEPTH)
@@ -53,7 +56,7 @@ module tb_sync_fifo;
     task fail_test(input string msg);
         begin
             $display("FAIL: %s", msg);
-            $finish;
+            $fatal(1);
         end
     endtask
 
@@ -82,7 +85,7 @@ module tb_sync_fifo;
                 if (dout !== sb_expected_data) begin
                     $display("FAIL: Scoreboard mismatch. Expected=%0h Actual=%0h",
                              sb_expected_data, dout);
-                    $finish;
+                    $fatal(1);
                 end
             end
 
@@ -91,7 +94,7 @@ module tb_sync_fifo;
             if (dut.count != expected_count) begin
                 $display("FAIL: Count mismatch. Expected=%0d Actual=%0d",
                          expected_count, dut.count);
-                $finish;
+                $fatal(1);
             end
 
             if ((expected_count == 0) && (empty !== 1'b1)) begin
@@ -112,47 +115,45 @@ module tb_sync_fifo;
         end
     end
 
-
     always @(posedge clk) begin
         if (rst_n) begin
             assert (dut.count <= DEPTH)
                 else begin
                     $display("ASSERTION FAIL: count exceeded DEPTH. count=%0d DEPTH=%0d", dut.count, DEPTH);
-                    $finish;
+                    $fatal(1);
                 end
 
             assert (empty == (dut.count == 0))
                 else begin
                     $display("ASSERTION FAIL: empty flag mismatch. empty=%0b count=%0d", empty, dut.count);
-                    $finish;
+                    $fatal(1);
                 end
 
             assert (full == (dut.count == DEPTH))
                 else begin
                     $display("ASSERTION FAIL: full flag mismatch. full=%0b count=%0d", full, dut.count);
-                    $finish;
+                    $fatal(1);
                 end
 
             assert (!(full && empty))
                 else begin
                     $display("ASSERTION FAIL: full and empty are both high");
-                    $finish;
+                    $fatal(1);
                 end
 
             assert (!(wr_en && full && !rd_en && dut.wr_accept))
                 else begin
                     $display("ASSERTION FAIL: write accepted while FIFO full without read");
-                    $finish;
+                    $fatal(1);
                 end
 
             assert (!(rd_en && empty && dut.rd_accept))
                 else begin
                     $display("ASSERTION FAIL: read accepted while FIFO empty");
-                    $finish;
+                    $fatal(1);
                 end
         end
     end
-
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -190,51 +191,6 @@ module tb_sync_fifo;
         end
     end
 
-    task report_coverage();
-        begin
-            $display("");
-            $display("Coverage summary:");
-            $display("  reset_seen        = %0d", cov_reset_seen);
-            $display("  empty_state       = %0d", cov_empty_state);
-            $display("  full_state        = %0d", cov_full_state);
-            $display("  middle_state      = %0d", cov_middle_state);
-            $display("  write_only        = %0d", cov_write_only);
-            $display("  read_only         = %0d", cov_read_only);
-            $display("  simultaneous_rw   = %0d", cov_simultaneous_rw);
-            $display("  overflow_attempt  = %0d", cov_overflow_attempt);
-            $display("  underflow_attempt = %0d", cov_underflow_attempt);
-
-            if (cov_reset_seen == 0)
-                fail_test("Coverage miss: reset was not seen");
-
-            if (cov_empty_state == 0)
-                fail_test("Coverage miss: empty state was not seen");
-
-            if (cov_full_state == 0)
-                fail_test("Coverage miss: full state was not seen");
-
-            if (cov_middle_state == 0)
-                fail_test("Coverage miss: middle occupancy state was not seen");
-
-            if (cov_write_only == 0)
-                fail_test("Coverage miss: write-only operation was not seen");
-
-            if (cov_read_only == 0)
-                fail_test("Coverage miss: read-only operation was not seen");
-
-            if (cov_simultaneous_rw == 0)
-                fail_test("Coverage miss: simultaneous read/write was not seen");
-
-            if (cov_overflow_attempt == 0)
-                fail_test("Coverage miss: overflow attempt was not seen");
-
-            if (cov_underflow_attempt == 0)
-                fail_test("Coverage miss: underflow attempt was not seen");
-
-            $display("PASS: Functional coverage goals hit");
-        end
-    endtask
-
     task check_state(
         input logic exp_empty,
         input logic exp_full,
@@ -246,17 +202,17 @@ module tb_sync_fifo;
 
             if (empty !== exp_empty) begin
                 $display("FAIL: %s empty expected=%0b actual=%0b", msg, exp_empty, empty);
-                $finish;
+                $fatal(1);
             end
 
             if (full !== exp_full) begin
                 $display("FAIL: %s full expected=%0b actual=%0b", msg, exp_full, full);
-                $finish;
+                $fatal(1);
             end
 
             if (dut.count !== exp_count) begin
                 $display("FAIL: %s count expected=%0d actual=%0d", msg, exp_count, dut.count);
-                $finish;
+                $fatal(1);
             end
         end
     endtask
@@ -341,6 +297,51 @@ module tb_sync_fifo;
         end
     endtask
 
+    task report_coverage();
+        begin
+            $display("");
+            $display("Coverage summary:");
+            $display("  reset_seen        = %0d", cov_reset_seen);
+            $display("  empty_state       = %0d", cov_empty_state);
+            $display("  full_state        = %0d", cov_full_state);
+            $display("  middle_state      = %0d", cov_middle_state);
+            $display("  write_only        = %0d", cov_write_only);
+            $display("  read_only         = %0d", cov_read_only);
+            $display("  simultaneous_rw   = %0d", cov_simultaneous_rw);
+            $display("  overflow_attempt  = %0d", cov_overflow_attempt);
+            $display("  underflow_attempt = %0d", cov_underflow_attempt);
+
+            if (cov_reset_seen == 0)
+                fail_test("Coverage miss: reset was not seen");
+
+            if (cov_empty_state == 0)
+                fail_test("Coverage miss: empty state was not seen");
+
+            if (cov_full_state == 0)
+                fail_test("Coverage miss: full state was not seen");
+
+            if (cov_middle_state == 0)
+                fail_test("Coverage miss: middle occupancy state was not seen");
+
+            if (cov_write_only == 0)
+                fail_test("Coverage miss: write-only operation was not seen");
+
+            if (cov_read_only == 0)
+                fail_test("Coverage miss: read-only operation was not seen");
+
+            if (cov_simultaneous_rw == 0)
+                fail_test("Coverage miss: simultaneous read/write was not seen");
+
+            if (cov_overflow_attempt == 0)
+                fail_test("Coverage miss: overflow attempt was not seen");
+
+            if (cov_underflow_attempt == 0)
+                fail_test("Coverage miss: underflow attempt was not seen");
+
+            $display("PASS: Functional coverage goals hit");
+        end
+    endtask
+
     task test_single_write_read();
         begin
             reset_fifo();
@@ -411,6 +412,45 @@ module tb_sync_fifo;
         end
     endtask
 
+    task test_simultaneous_when_empty();
+        begin
+            reset_fifo();
+
+            simultaneous_write_read(8'hE1);
+            check_state(1'b0, 1'b0, 1, "after simultaneous read/write when empty");
+
+            read_fifo();
+            check_state(1'b1, 1'b0, 0, "after draining simultaneous empty test");
+
+            $display("PASS: Simultaneous read/write when empty test");
+        end
+    endtask
+
+    task test_simultaneous_when_full();
+        begin
+            reset_fifo();
+
+            write_fifo(8'h11);
+            write_fifo(8'h22);
+            write_fifo(8'h33);
+            write_fifo(8'h44);
+
+            check_state(1'b0, 1'b1, DEPTH, "before simultaneous read/write when full");
+
+            simultaneous_write_read(8'hF5);
+            check_state(1'b0, 1'b1, DEPTH, "after simultaneous read/write when full");
+
+            read_fifo();
+            read_fifo();
+            read_fifo();
+            read_fifo();
+
+            check_state(1'b1, 1'b0, 0, "after draining simultaneous full test");
+
+            $display("PASS: Simultaneous read/write when full test");
+        end
+    endtask
+
     task test_pointer_wraparound();
         begin
             reset_fifo();
@@ -443,7 +483,6 @@ module tb_sync_fifo;
         end
     endtask
 
-
     task test_randomized();
         int i;
         int drain_guard;
@@ -454,7 +493,7 @@ module tb_sync_fifo;
                 @(negedge clk);
                 wr_en = $urandom_range(0, 1);
                 rd_en = $urandom_range(0, 1);
-                din   = $urandom_range(0, 255);
+                din   = DATA_WIDTH'($urandom_range(0, 255));
             end
 
             @(negedge clk);
@@ -488,15 +527,25 @@ module tb_sync_fifo;
         rd_en = 1'b0;
         din   = '0;
 
+        if (!$value$plusargs("SEED=%d", seed_used)) begin
+            seed_used = 32'h00C0FFEE;
+        end
+
+        seed_init_value = $urandom(seed_used);
+        $display("INFO: Random seed = %0d", seed_used);
+
         test_single_write_read();
         test_fill_overflow_drain();
         test_underflow();
         test_simultaneous_read_write();
+        test_simultaneous_when_empty();
+        test_simultaneous_when_full();
         test_pointer_wraparound();
         test_randomized();
+
         report_coverage();
 
-        $display("Milestone 6 PASSED: tests, scoreboard, assertions, and coverage");
+        $display("Milestone 9 PASSED: reproducible FIFO DV regression complete");
         $finish;
     end
 

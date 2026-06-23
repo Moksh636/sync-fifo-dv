@@ -4,6 +4,19 @@
 
 Parameterized Synchronous FIFO Design and Verification in SystemVerilog.
 
+## Current Status
+
+Implemented and passing:
+
+- directed tests
+- randomized tests
+- self-checking scoreboard
+- immediate assertions
+- functional coverage counters
+- regression script
+- Verilator lint target
+- GitHub Actions CI
+
 ## Testbench
 
 Top-level testbench:
@@ -14,22 +27,75 @@ Simulation script:
 
 - scripts/run_tests.sh
 
+Makefile targets:
+
+- make test
+- make test SEED=42
+- make lint
+- make wave
+- make clean
+
 ## Directed Tests
 
-| Test | Purpose | Expected Result |
+| Test | Purpose | Status |
 |---|---|---|
-| Reset test | Verify reset initializes FIFO | empty=1, full=0, count=0 |
-| Single write/read | Verify one value can be written and read back | read data equals written data |
-| Fill test | Verify FIFO reaches full state | full=1, count=DEPTH |
-| Overflow test | Verify write when full is ignored | extra write is not stored |
-| Drain test | Verify FIFO drains in correct order | read order matches write order |
-| Underflow test | Verify read when empty is ignored | count stays 0, empty=1 |
-| Simultaneous read/write | Verify read and write in same cycle | count remains stable when both accepted |
-| Wraparound test | Verify pointers wrap correctly | FIFO preserves order across pointer wrap |
+| Reset test | Verify FIFO initializes correctly | Implemented |
+| Single write/read | Verify one value can be written and read back | Implemented |
+| Fill test | Verify FIFO reaches full state | Implemented |
+| Overflow attempt | Verify write when full is ignored | Implemented |
+| Drain/order test | Verify FIFO preserves first-in, first-out order | Implemented |
+| Underflow attempt | Verify read when empty is ignored | Implemented |
+| Simultaneous read/write in middle state | Verify count stability and ordering | Implemented |
+| Simultaneous read/write when empty | Verify read is ignored and write is accepted | Implemented |
+| Simultaneous read/write when full | Verify read and write are both accepted and count stays full | Implemented |
+| Pointer wraparound | Verify pointer wrapping preserves data order | Implemented |
+| Randomized traffic | Stress FIFO with random read/write operations | Implemented |
 
-## Future Tests
+## Scoreboard
 
-- randomized traffic
-- scoreboard/reference queue
-- assertions
-- functional coverage
+The scoreboard uses a SystemVerilog queue as the reference model.
+
+Accepted writes are pushed into the queue.
+
+Accepted reads pop the oldest value from the queue and compare it against dout.
+
+The scoreboard also checks count, full, and empty behavior.
+
+## Assertions
+
+Immediate assertions check:
+
+- count never exceeds DEPTH
+- empty matches count == 0
+- full matches count == DEPTH
+- full and empty are not both high
+- write is not accepted while full unless a read also happens
+- read is not accepted while empty
+
+## Functional Coverage
+
+Coverage counters track:
+
+- reset seen
+- empty state
+- full state
+- middle occupancy state
+- write-only operation
+- read-only operation
+- simultaneous read/write
+- overflow attempt
+- underflow attempt
+
+The regression fails if any required coverage point is missed.
+
+## Random Seed Control
+
+The randomized test supports repeatable seeds.
+
+Default:
+
+- SEED=12648430
+
+Example:
+
+- make test SEED=42
