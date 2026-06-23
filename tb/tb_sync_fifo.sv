@@ -31,7 +31,8 @@ module tb_sync_fifo;
     int cov_overflow_attempt;
     int cov_underflow_attempt;
 
-    int unsigned seed_used;
+    int unsigned seed_input;
+    int unsigned seed_runtime;
     int unsigned seed_init_value;
 
     sync_fifo #(
@@ -527,12 +528,15 @@ module tb_sync_fifo;
         rd_en = 1'b0;
         din   = '0;
 
-        if (!$value$plusargs("SEED=%d", seed_used)) begin
-            seed_used = 32'h00C0FFEE;
+        if (!$value$plusargs("SEED=%d", seed_input)) begin
+            seed_input = 32'h00C0FFEE;
         end
 
-        seed_init_value = $urandom(seed_used);
-        $display("INFO: Random seed = %0d", seed_used);
+        seed_runtime = seed_input;
+        seed_init_value = $urandom(seed_runtime);
+
+        $display("INFO: Input random seed = %0d", seed_input);
+        $display("INFO: Initialized random stream value = %0d", seed_init_value);
 
         test_single_write_read();
         test_fill_overflow_drain();

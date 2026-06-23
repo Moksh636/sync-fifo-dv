@@ -40,7 +40,6 @@
 - [x] Regression output
 - [x] README
 - [x] Project explanation
-- [x] Waveform screenshot
 
 ## Tool Flow
 

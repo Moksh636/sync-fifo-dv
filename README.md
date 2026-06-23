@@ -8,7 +8,7 @@ The goal of this project is to demonstrate core ASIC design and design verificat
 
 ## Project Status
 
-Current status: Milestone 6 complete
+Current status: v1.0 complete. Milestone 9 passing.
 
 Completed features:
 
@@ -141,7 +141,7 @@ The latest regression passed all directed tests, randomized testing, scoreboard 
 
 Final result:
 
-Milestone 6 PASSED: tests, scoreboard, assertions, and coverage
+Milestone 9 PASSED: reproducible FIFO DV regression complete
 
 Coverage summary from latest run:
 
@@ -165,7 +165,7 @@ Waveform output:
 
 The waveform was inspected using GTKWave to confirm reset behavior, write behavior, read behavior, pointer movement, count updates, and full/empty flag behavior.
 
-Waveform screenshots and notes are stored under docs.
+Waveform notes are stored under docs.
 
 ## Repository Structure
 
@@ -180,8 +180,7 @@ Waveform screenshots and notes are stored under docs.
 - docs/random_test_notes.md: Randomized test explanation
 - docs/assertion_notes.md: Assertion notes
 - docs/coverage_notes.md: Coverage notes
-- docs/regression_milestone6.txt: Latest regression output
-- docs/images/: Waveform screenshots
+- docs/regression_latest.txt: Latest regression output
 
 ## Tools Used
 

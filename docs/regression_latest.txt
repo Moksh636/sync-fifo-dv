@@ -1,0 +1,39 @@
+SEED=12648430 ./scripts/run_tests.sh
+VCD info: dumpfile sim/waves/sync_fifo.vcd opened for output.
+INFO: Input random seed = 12648430
+INFO: Initialized random stream value = 1736050894
+PASS: Reset test
+PASS: Single write/read test
+PASS: Reset test
+PASS: Fill test
+PASS: Overflow attempt ignored
+PASS: Drain/order test
+PASS: Reset test
+PASS: Underflow attempt ignored
+PASS: Reset test
+PASS: Simultaneous read/write test
+PASS: Reset test
+PASS: Simultaneous read/write when empty test
+PASS: Reset test
+PASS: Simultaneous read/write when full test
+PASS: Reset test
+PASS: Pointer wraparound/order test
+PASS: Reset test
+PASS: Randomized traffic test
+
+Coverage summary:
+  reset_seen        = 17
+  empty_state       = 73
+  full_state        = 33
+  middle_state      = 196
+  write_only        = 56
+  read_only         = 67
+  simultaneous_rw   = 50
+  overflow_attempt  = 8
+  underflow_attempt = 25
+PASS: Functional coverage goals hit
+Milestone 9 PASSED: reproducible FIFO DV regression complete
+tb/tb_sync_fifo.sv:553: $finish called at 3191000 (1ps)
+
+To open waveform:
+gtkwave sim/waves/sync_fifo.vcd
